@@ -56,7 +56,7 @@ stages:
     - script: |
         echo "Packaging artifact for delivery"
         if not exist "$(buildDir)\deliverables" mkdir "$(buildDir)\deliverables"
-        for %f in ("$(buildDir)\*.jar") do copy "%f" "$(buildDir)\deliverables\"
+        for %%f in ("$(buildDir)\*.jar") do copy "%%f" "$(buildDir)\deliverables\"
       displayName: "Prepare Deliverables"
 
     - task: PublishPipelineArtifact@1
