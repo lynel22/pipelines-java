@@ -10,7 +10,7 @@ pool:
   name: Default
 
 variables:
-  buildDir: '$(System.DefaultWorkingDirectory)/target'
+  buildDir: '$(System.DefaultWorkingDirectory)\target'
 
 stages:
 - stage: Build
@@ -43,7 +43,7 @@ stages:
         jdkVersionOption: '1.11'
         jdkArchitectureOption: 'x64'
         publishJUnitResults: true
-        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        testResultsFiles: '**\surefire-reports\TEST-*.xml'
         goals: 'test'
 
 - stage: Deliver
@@ -67,11 +67,6 @@ stages:
           copy "%%f" "$(buildDir)\deliverables\"
         )
       displayName: "Prepare Deliverables"
-
-    - script: |
-        echo "Listing contents of deliverables directory"
-        dir "$(buildDir)\deliverables" /s
-      displayName: "Debug Deliverables Directory"
 
     - task: PublishPipelineArtifact@1
       inputs:
