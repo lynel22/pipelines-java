@@ -55,12 +55,13 @@ stages:
     steps:
     - script: |
         echo "Packaging artifact for delivery"
-        mkdir -p $(buildDir)/deliverables
-        cp $(buildDir)/*.jar $(buildDir)/deliverables/
+        if not exist "$(buildDir)\deliverables" mkdir "$(buildDir)\deliverables"
+        for %f in ("$(buildDir)\*.jar") do copy "%f" "$(buildDir)\deliverables\"
       displayName: "Prepare Deliverables"
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: '$(buildDir)/deliverables'
+        targetPath: '$(buildDir)\deliverables'
         artifact: 'java-app'
         publishLocation: 'pipeline'
+
