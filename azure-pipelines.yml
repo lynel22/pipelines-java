@@ -54,14 +54,27 @@ stages:
     displayName: "Deliver Job"
     steps:
     - script: |
-        echo "Packaging artifact for delivery"
+        echo "Debug: Checking $(buildDir)"
         if not exist "$(buildDir)\deliverables" mkdir "$(buildDir)\deliverables"
-        for %%f in ("$(buildDir)\*.jar") do copy "%%f" "$(buildDir)\deliverables\"
+        echo "Copying JAR files to deliverables"
+        for %%f in ("$(buildDir)\*.jar") do (
+          echo Copying %%f
+          copy "%%f" "$(buildDir)\deliverables\"
+        )
+        echo "Copying test result files to deliverables"
+        for %%f in ("$(buildDir)\**\surefire-reports\TEST-*.xml") do (
+          echo Copying %%f
+          copy "%%f" "$(buildDir)\deliverables\"
+        )
       displayName: "Prepare Deliverables"
+
+    - script: |
+        echo "Listing contents of deliverables directory"
+        dir "$(buildDir)\deliverables" /s
+      displayName: "Debug Deliverables Directory"
 
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: '$(buildDir)\deliverables'
         artifact: 'java-app'
         publishLocation: 'pipeline'
-
