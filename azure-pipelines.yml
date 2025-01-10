@@ -8,6 +8,8 @@ trigger:
 
 pool:
   name: Default
+  demands:
+    - agent.name -equals Docker Agent - Windows
 
 variables:
   buildDir: '$(System.DefaultWorkingDirectory)\target'
@@ -19,7 +21,7 @@ stages:
   - job: Build
     displayName: "Build Job"
     steps:
-    - task: Maven@3
+    - task: Maven@4
       inputs:
         mavenPomFile: 'pom.xml'
         mavenOptions: '-Xmx3072m'
@@ -28,6 +30,17 @@ stages:
         jdkArchitectureOption: 'x64'
         goals: 'clean compile package'
 
+    - script: |
+        echo "Contents of $(buildDir):"
+        dir $(buildDir)
+      displayName: "List Build Directory"
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(buildDir)'
+        artifact: 'build-output'
+      displayName: "Publish Build Output"
+
 - stage: Test
   displayName: "Test Stage"
   dependsOn: Build
@@ -35,7 +48,13 @@ stages:
   - job: Test
     displayName: "Test Job"
     steps:
-    - task: Maven@3
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifact: 'build-output'
+        path: '$(buildDir)'
+      displayName: "Download Build Output"
+      
+    - task: Maven@4
       inputs:
         mavenPomFile: 'pom.xml'
         mavenOptions: '-Xmx3072m'
@@ -46,6 +65,13 @@ stages:
         testResultsFiles: '**\surefire-reports\TEST-*.xml'
         goals: 'test'
 
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(buildDir)'
+        artifact: 'test-output'
+        publishLocation: 'pipeline'
+      displayName: "Publish Test Output"
+
 - stage: Deliver
   displayName: "Deliver Stage"
   dependsOn: Test
@@ -53,23 +79,33 @@ stages:
   - job: Deliver
     displayName: "Deliver Job"
     steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifact: 'test-output'
+        path: '$(buildDir)'
+      displayName: "Download Test Output"
+      
     - script: |
         echo "Debug: Checking $(buildDir)"
         if not exist "$(buildDir)\deliverables" mkdir "$(buildDir)\deliverables"
-        echo "Copying JAR files to deliverables"
-        for %%f in ("$(buildDir)\*.jar") do (
-          echo Copying %%f
-          copy "%%f" "$(buildDir)\deliverables\"
+        if not exist "$(buildDir)\*.war" (
+          echo "No WAR files found in $(buildDir)"
+        ) else (
+          echo "Copying WAR files to deliverables"
+          for %%f in ("$(buildDir)\*.war") do copy "%%f" "$(buildDir)\deliverables\"
         )
-        echo "Copying test result files to deliverables"
-        for %%f in ("$(buildDir)\**\surefire-reports\TEST-*.xml") do (
-          echo Copying %%f
-          copy "%%f" "$(buildDir)\deliverables\"
+        if not exist "$(buildDir)\surefire-reports\*" (
+          echo "No test result files found"
+        ) else (
+          echo "Copying test result files to deliverables"
+          xcopy /S /Y "$(buildDir)\surefire-reports" "$(buildDir)\deliverables\"
         )
-      displayName: "Prepare Deliverables"
-
+        dir "$(buildDir)"
+      displayName: "Prepare Deliverables with Validation"     
+      
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: '$(buildDir)\deliverables'
         artifact: 'java-app'
         publishLocation: 'pipeline'
+      displayName: "Publish Final Output"   
