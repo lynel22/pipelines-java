@@ -7,9 +7,9 @@ trigger:
 - main
 
 pool:
-  name: Default
+  name: DockerAgents
   demands:
-    - agent.name -equals Docker Agent - Windows
+    - agent.name -equals docker-agent
 
 variables:
   buildDir: '$(System.DefaultWorkingDirectory)\target'
